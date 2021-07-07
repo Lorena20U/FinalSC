@@ -1,0 +1,155 @@
+%Proyecto Final ---Lorena Perez, Carne 20200396
+
+
+pkg load io; %se carga el paquete io para poder leer el archivo
+format short g;
+glucosa=xlsread('Glucosa_Project.xlsx'); %se almacena la informacion
+
+
+%Punto 2: Eliminando valores perdidos
+[a,b]=find(isnan(glucosa)); %se busca donde hay un valor perdido en el documento
+glucosa(a(1),:)=[];
+if length(a)>1;
+  for i=2:length(a);
+    if a(i)!=a(i-1);
+      glucosa(a(i),:)=[]; %se eliminan los valores perdidos
+    endif
+  endfor
+endif
+largo=length(glucosa); %largo de la lectura de la base de datos
+
+
+
+%----------------------------------------
+printf('\n\tProyecto Final - Scientific Computing\n\t\tLorena Perez - 20200396\n');
+
+printf('\n\tGLUCOSE MONITORING PROGRAM (GMP)\nDirigido a medicos como una herramienta numerico grafica que sirve como base para diagnosticos.\nTambien dirigidos a pacientes diabeticos a fin de ayudarles a mantener un mejor control de glucosa.\n');
+
+printf('\nPara poder continuar, ingrese la hora en que toma su primera dosis de medicamento. \n');
+printf('\nNOTA: El formato en el que debe ingresar la hora es de "12:00 PM", para que pueda continuar sin ningun problema.\n');
+a=1;
+while a==1;
+  hora=input('Hora del medicamento: ','s');
+  if length(hora)==7;
+    a=0;
+  endif
+  if length(hora)==8;
+    a=0;
+  endif
+  if length(hora)>8 | length(hora)<7;
+    error('Formato incorrecto, debe ser "12:00 AM".');
+  endif
+endwhile
+hora=datenum(hora)-fix(datenum(hora)); %convierte el dato alfanumerico a numerico
+
+mini=glucosa(1,4);
+maxi=glucosa(1,4);
+for i=2:largo;
+  if mini>glucosa(i,4);
+    mini=glucosa(i,4);
+  endif
+  if maxi<glucosa(i,4);
+    maxi=glucosa(i,4);
+  endif
+endfor
+totalhp=(maxi-hora)*24; %horas positivas
+totalhn=(hora-mini)*24; %horas negativas
+printf('\nTotal de horas que hay entre el instante en que habitualmente toma el \nmedicamento y la hora en que se toma la glucosa, es de: %4.2f, \nhabiendo tambien: %4.2f horas negativas. \n',totalhp, totalhn);
+
+printf('\n\nAntes de continuar al menu, defina el rango de fechas para el analisis.\n');
+printf('Para las variables, ingrese un numero entero que corresponda a las fechas que se analizaran.\n');
+
+h=1;
+de=input('Desde: ');
+while h==1;
+  hasta=input('Hasta: ');
+  if hasta>de;
+    h=0;
+  else
+    display('Error: "Hasta" debe ser mayor que "Desde".');
+  endif
+endwhile
+
+calculo=10; %maximo de datos con los que el programa debe trabajar, se puede trabajar con menos
+if (hasta-de)<=calculo;
+  for i=1:(hasta-de);
+    intervalo(i)=de+i;
+  endfor
+else
+  intervalo=aleatorio(de,hasta);
+endif
+
+h=(totalhp-(-totalhn))/(length(intervalo)-1);
+x=-totalhn:h:totalhp;
+for kj=1:length(intervalo);
+  for k=kj:length(intervalo);
+    if glucosa(intervalo(k),4)<x(kj);
+      y(k)=glucosa(intervalo(k),3);
+    endif
+  endfor
+endfor
+
+for t=1:length(intervalo);
+        fec(t)=glucosa(intervalo(t),2);
+endfor
+
+%------------------------------------
+si=1;
+while si==1;
+  printf('\n-----------------------------------------------------\n');
+  printf('\n\n\t\tMENU DE OPCIONES: \n');
+  printf('1. Grafica.\n');
+  printf('2. Tabla de metabolizaci[on de glucosa. \n');
+  printf('3. Aceleracion metabolica de la glucosa. \n');
+  printf('4. Glucosa promedio. \n');
+  printf('5. Glucosa-Meta. \n');
+  printf('6. Tendencia. \n');
+  printf('7. Resumen estadistico. \n');
+  printf('\nEliga una opcion, este debe ser el numero entero a la par del titulo. \n');
+  seleccion=input('Numero de la opcion: '); %seleccion debe ser un numero entero
+  switch seleccion;
+    case 1;
+      printf('\nSe generara una grafica de Glucosa-Tiempo.\n');
+      printf('Elija una opcion de las caracteristicas disponibles. \n');
+      printf('1. Solo puntos de observacion. \n2. Curva aproximada. \n3. Puntos y curva aproximada. \n');
+      caract=input('Elija la caracteristica: ');
+      grafica(caract,x,y);
+    case 2;
+      printf('\nSe generara una tabla donde pueda observar las razones de cambio instantaneas para el rango de fechas seleccionado.\n');
+      
+      rs=razonInstantanea(2,x,y,fec);
+    case 3;
+      printf('\nSe mostraran las aceleraciones minima y maxima de la glucosa en la sangre. \n');
+      am=razonInstantanea(3,x,y);
+    case 4;
+      printf('\nSe calculara el promedio de glucosa en la sangre para el intervalo seleccionado de fechas.\n');
+      a=min(x); b=max(y);
+      prom=promedio(a,b,y);
+      prom=prom/(b-a);
+      printf('El promedio de la glucosa es de: %4.5f\n',prom);
+    case 5;
+      printf('\nSe mostraran puntos de alcance. \nIngrese un tiempo determinado para calcular el nivel de glucosa.\n');
+      nivel=input('Tiempo: ','s');
+      nivel=datenum(nivel)-fix(datenum(nivel));
+      meta=glucosaMeta(y,x,nivel);
+      printf('Glucosa al que se llega segun el tiempo ingresado: %4.5f\n', meta);
+    case 6;
+      printf('\nA partir del rango de fechas seleccionado, se mostrara el modelo de Regresion Lineal Simple.\n');
+      tendencia(x,y);
+    case 7;
+      printf('\n\n\t\tInformacion Estadistica\n');
+      for w=1:(hasta-de);
+        t(w)=glucosa(de+w,4);
+        g(w)=glucosa(de+w,3);
+        f(w)=glucosa(de+w,2);
+      endfor
+      resumen(f,t,g);
+    otherwise;
+      printf('No existe esa opcion\n');
+  endswitch
+  printf('\nDesea volver al menu de opciones? \n1. Si\n2. No\n');
+  si=input('Volver: ');
+  if si!=1;
+    printf('\nGracias por ingresar!\n\n');
+  endif
+endwhile
